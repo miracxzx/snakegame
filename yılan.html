@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yılan Oyunu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for the game */
+        body {
+            font-family: 'Roboto', sans-serif;
+            touch-action: none; /* Disable double-tap zoom on mobile */
+        }
+        /* Using a pixelated font for the retro game feel */
+        .game-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+        /* Styling for the game canvas */
+        canvas {
+            background-color: #1a202c; /* Dark background for the game area */
+            border: 4px solid #4a5568;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        /* Styling for the control buttons to make them look good and easy to press */
+        .control-btn {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .control-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-lg mx-auto text-center">
+        <!-- Game Title -->
+        <h1 class="text-4xl md:text-5xl font-bold mb-2 game-font text-green-400">YILAN</h1>
+        
+        <!-- Score and High Score Display -->
+        <div class="flex justify-around items-center mb-4 bg-gray-800 p-3 rounded-lg shadow-inner">
+            <div>
+                <p class="text-lg game-font">SKOR</p>
+                <p id="score" class="text-3xl font-bold">0</p>
+            </div>
+            <div>
+                <p class="text-lg game-font">REKOR</p>
+                <p id="highScore" class="text-3xl font-bold">0</p>
+            </div>
+        </div>
+
+        <!-- Game Canvas Container -->
+        <div id="game-container" class="relative w-full aspect-square mb-4">
+             <canvas id="gameCanvas" class="w-full h-full"></canvas>
+             <!-- Game Over / Start Message Overlay -->
+             <div id="message-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70 rounded-lg cursor-pointer">
+                <p id="message-text" class="text-3xl game-font text-yellow-400">BAŞLAT</p>
+                <p class="mt-4 text-gray-300">Oynamak için butona tıkla veya yön tuşlarını kullan.</p>
+             </div>
+        </div>
+        
+        <!-- Mobile Controls -->
+        <div class="grid grid-cols-3 gap-2 w-full max-w-xs mx-auto md:hidden">
+            <div></div>
+            <button id="btn-up" class="control-btn bg-green-500 hover:bg-green-600 rounded-lg p-4 col-span-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+                </svg>
+            </button>
+            <div></div>
+            <button id="btn-left" class="control-btn bg-green-500 hover:bg-green-600 rounded-lg p-4 col-span-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <button id="btn-restart-mobile" class="control-btn bg-yellow-500 hover:bg-yellow-600 rounded-lg p-4 col-span-1 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 9a9 9 0 0114.12-5.12M20 15a9 9 0 01-14.12 5.12" />
+                </svg>
+            </button>
+            <button id="btn-right" class="control-btn bg-green-500 hover:bg-green-600 rounded-lg p-4 col-span-1">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+            <div></div>
+            <button id="btn-down" class="control-btn bg-green-500 hover:bg-green-600 rounded-lg p-4 col-span-1">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            <div></div>
+        </div>
+
+        <!-- Desktop Restart Button -->
+        <button id="btn-restart-desktop" class="hidden md:block control-btn bg-yellow-500 hover:bg-yellow-600 rounded-lg p-4 mt-4 w-full max-w-xs mx-auto game-font text-xl">
+            YENİDEN BAŞLAT
+        </button>
+
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const highScoreEl = document.getElementById('highScore');
+        const messageOverlay = document.getElementById('message-overlay');
+        const messageText = document.getElementById('message-text');
+
+        // --- Game Constants & Variables ---
+        const gridSize = 20; // Number of cells in the grid (20x20)
+        let canvasSize; // Will be set dynamically
+        let tileCount; // Size of each cell, calculated from canvas size
+
+        let snake, food, score, highScore, direction, changingDirection, isGameOver, gameLoop;
+
+        // --- Game Setup Functions ---
+        
+        /**
+         * Resizes the canvas to fit its container and calculates tile size.
+         * This makes the game responsive.
+         */
+        function setupCanvas() {
+            const container = document.getElementById('game-container');
+            canvasSize = container.offsetWidth;
+            canvas.width = canvasSize;
+            canvas.height = canvasSize;
+            tileCount = canvas.width / gridSize;
+        }
+
+        /**
+         * Initializes or resets the game state.
+         */
+        function initializeGame() {
+            // Stop any existing game loop
+            if (gameLoop) {
+                clearTimeout(gameLoop);
+            }
+            
+            setupCanvas();
+            
+            // Initial snake position and state
+            snake = [{ x: 10, y: 10 }];
+            score = 0;
+            // Load high score from localStorage, or default to 0
+            highScore = localStorage.getItem('snakeHighScore') || 0;
+            direction = { x: 0, y: 0 }; // Not moving initially
+            changingDirection = false;
+            isGameOver = false;
+
+            // Display initial scores
+            scoreEl.textContent = score;
+            highScoreEl.textContent = highScore;
+            
+            // Generate the first piece of food
+            generateFood();
+            
+            // Show the start message overlay
+            messageOverlay.style.display = 'flex';
+            messageText.innerHTML = 'BAŞLAT';
+            document.querySelector('#message-overlay p:last-child').style.display = 'block';
+
+        }
+
+        /**
+         * Main game loop function.
+         */
+        function main() {
+            if (isGameOver) {
+                // Show game over message and update high score if needed
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('snakeHighScore', highScore);
+                    highScoreEl.textContent = highScore;
+                }
+                messageText.innerHTML = `OYUN BİTTİ!<br><span class="text-xl">SKOR: ${score}</span>`;
+                document.querySelector('#message-overlay p:last-child').style.display = 'none'; // Hide subtitle on game over
+                messageOverlay.style.display = 'flex';
+                return;
+            }
+
+            changingDirection = false; // Allow next direction change
+            
+            // Set a timeout for the next frame, controlling the snake's speed
+            gameLoop = setTimeout(() => {
+                clearCanvas();
+                drawFood();
+                moveSnake();
+                drawSnake();
+                main();
+            }, 120); // Lower number = faster snake
+        }
+
+        // --- Drawing Functions ---
+
+        /**
+         * Clears the entire canvas.
+         */
+        function clearCanvas() {
+            ctx.fillStyle = '#1a202c'; // Game background color
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        /**
+         * Draws all segments of the snake.
+         */
+        function drawSnake() {
+            snake.forEach(drawSnakePart);
+        }
+
+        /**
+         * Draws a single part of the snake's body.
+         * @param {object} snakePart - The {x, y} coordinates of the snake part.
+         */
+        function drawSnakePart(snakePart) {
+            ctx.fillStyle = '#48bb78'; // Snake color
+            ctx.strokeStyle = '#1a202c'; // Border color for segments
+            ctx.fillRect(snakePart.x * tileCount, snakePart.y * tileCount, tileCount, tileCount);
+            ctx.strokeRect(snakePart.x * tileCount, snakePart.y * tileCount, tileCount, tileCount);
+        }
+
+        /**
+         * Draws the food on the canvas.
+         */
+        function drawFood() {
+            ctx.fillStyle = '#f56565'; // Food color
+            ctx.strokeStyle = '#f56565';
+            // Draw a circle for the food
+            ctx.beginPath();
+            ctx.arc(food.x * tileCount + tileCount / 2, food.y * tileCount + tileCount / 2, tileCount / 2.5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        // --- Game Logic Functions ---
+
+        /**
+         * Generates a new piece of food at a random location, not on the snake.
+         */
+        function generateFood() {
+            let foodX, foodY;
+            // Keep generating coordinates until they are not on the snake
+            do {
+                foodX = Math.floor(Math.random() * gridSize);
+                foodY = Math.floor(Math.random() * gridSize);
+            } while (snake.some(part => part.x === foodX && part.y === foodY));
+            
+            food = { x: foodX, y: foodY };
+        }
+
+        /**
+         * Moves the snake and handles collisions.
+         */
+        function moveSnake() {
+            // Do not move if no direction is set (at the start of the game)
+            if (direction.x === 0 && direction.y === 0) return;
+
+            // Create new head position
+            const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+            snake.unshift(head);
+
+            // Check for game over conditions
+            const hitWall = head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize;
+            const hitSelf = snake.slice(1).some(part => part.x === head.x && part.y === head.y);
+
+            if (hitWall || hitSelf) {
+                isGameOver = true;
+                return;
+            }
+
+            // Check if snake ate food
+            const ateFood = snake[0].x === food.x && snake[0].y === food.y;
+            if (ateFood) {
+                score += 10;
+                scoreEl.textContent = score;
+                generateFood();
+            } else {
+                // Remove tail if no food was eaten
+                snake.pop();
+            }
+        }
+        
+        /**
+         * Changes the snake's direction and starts the game on the first move.
+         * @param {string} newDirection - 'UP', 'DOWN', 'LEFT', 'RIGHT'
+         */
+        function changeDirection(newDirection) {
+            // Check if this is the very first move to start the game
+            const isStarting = direction.x === 0 && direction.y === 0;
+
+            if (changingDirection) return; // Prevent multiple quick turns in one frame
+            
+            const goingUp = direction.y === -1;
+            const goingDown = direction.y === 1;
+            const goingRight = direction.x === 1;
+            const goingLeft = direction.x === -1;
+
+            // Set changingDirection flag only if a valid move is made
+            let validMove = false;
+            if (newDirection === 'UP' && !goingDown) {
+                direction = { x: 0, y: -1 };
+                validMove = true;
+            }
+            if (newDirection === 'DOWN' && !goingUp) {
+                direction = { x: 0, y: 1 };
+                validMove = true;
+            }
+            if (newDirection === 'LEFT' && !goingRight) {
+                direction = { x: -1, y: 0 };
+                validMove = true;
+            }
+            if (newDirection === 'RIGHT' && !goingLeft) {
+                direction = { x: 1, y: 0 };
+                validMove = true;
+            }
+
+            if (validMove) {
+                changingDirection = true;
+            }
+            
+            // If it was the first valid move, hide the overlay and start the main loop
+            if (isStarting && validMove) {
+                messageOverlay.style.display = 'none';
+                main();
+            }
+        }
+
+        // --- Event Listeners ---
+
+        /**
+         * Handles keyboard input.
+         */
+        document.addEventListener('keydown', (event) => {
+            switch (event.key) {
+                case 'ArrowUp':
+                case 'w':
+                    event.preventDefault(); // Prevent page scrolling
+                    changeDirection('UP');
+                    break;
+                case 'ArrowDown':
+                case 's':
+                    event.preventDefault(); // Prevent page scrolling
+                    changeDirection('DOWN');
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                    changeDirection('LEFT');
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                    changeDirection('RIGHT');
+                    break;
+            }
+        });
+        
+        /**
+         * Handles clicks on the on-screen buttons.
+         */
+        document.getElementById('btn-up').addEventListener('click', () => changeDirection('UP'));
+        document.getElementById('btn-down').addEventListener('click', () => changeDirection('DOWN'));
+        document.getElementById('btn-left').addEventListener('click', () => changeDirection('LEFT'));
+        document.getElementById('btn-right').addEventListener('click', () => changeDirection('RIGHT'));
+
+        /**
+         * Handles clicks on the restart buttons.
+         */
+        document.getElementById('btn-restart-mobile').addEventListener('click', initializeGame);
+        document.getElementById('btn-restart-desktop').addEventListener('click', initializeGame);
+        
+        /**
+         * Handle clicks on the message overlay to start or restart the game
+         */
+        messageOverlay.addEventListener('click', () => {
+            if(isGameOver) {
+                initializeGame();
+            } else {
+                changeDirection('RIGHT'); // Default start direction
+            }
+        });
+
+
+        /**
+         * Handles window resize to keep the game looking good.
+         */
+        window.addEventListener('resize', () => {
+            // Re-initialize the game on resize to adjust canvas dimensions
+            initializeGame();
+        });
+
+        // --- Initial Call ---
+        // Set up the game when the script loads
+        initializeGame();
+    </script>
+</body>
+</html>
