@@ -2,8 +2,8 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yılan Oyunu - Efsane Sürüm</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Yılan Oyunu - Nihai Sürüm</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,29 +14,24 @@
             --bg-color: #1a202c; --snake-color: #48bb78; --food-color: #f56565;
             --obstacle-color: #718096; --text-color: #f7fafc; --accent-color: #f6e05e;
             --snake-head-color: #a0fec0;
+            --snake2-color: #63b3ed; --snake2-head-color: '#a3d8f4';
         }
-        body { font-family: 'Roboto', sans-serif; touch-action: none; background-color: var(--bg-color); color: var(--text-color); }
+        body { font-family: 'Roboto', sans-serif; touch-action: none; background-color: var(--bg-color); color: var(--text-color); overflow: hidden; }
         .game-font { font-family: 'Press Start 2P', cursive; }
         canvas {
-            background-color: var(--bg-color);
-            border: 4px solid var(--obstacle-color);
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            transition: background-color 0.5s;
+            background-color: var(--bg-color); border: 4px solid var(--obstacle-color);
+            border-radius: 0.5rem; box-shadow: 0 10px 20px rgba(0,0,0,0.2); transition: background-color 0.5s;
         }
         .control-btn {
-            transition: all 0.2s ease-in-out;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s ease-in-out; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .control-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
-        }
+        .control-btn:active { transform: translateY(2px); box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
         .overlay {
             position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background-color: rgba(0, 0, 0, 0.85); border-radius: 0.5rem; text-align: center;
+            background-color: rgba(0, 0, 0, 0.9); border-radius: 0.5rem; text-align: center; padding: 1rem;
         }
-        .powerup-icon { font-size: 1.5rem; opacity: 0.7; }
+        .achievement-unlocked { background-color: var(--accent-color); color: var(--bg-color); }
+        .disabled-btn { cursor: not-allowed; background-color: #4a5568 !important; }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-2 sm:p-4">
@@ -44,467 +39,737 @@
     <div class="w-full max-w-lg mx-auto text-center">
         <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 game-font text-green-400">YILAN</h1>
         
-        <div class="flex justify-between items-center mb-4 bg-gray-800 bg-opacity-50 p-3 rounded-lg shadow-inner">
-            <div class="text-left">
-                <p class="text-base sm:text-lg game-font">SKOR</p>
-                <p id="score" class="text-2xl sm:text-3xl font-bold">0</p>
-            </div>
-            <!-- Dynamic area for timer or pause button -->
-            <div id="center-display" class="text-center"></div>
-            <div class="text-right">
-                <p class="text-base sm:text-lg game-font">REKOR</p>
-                <p id="highScore" class="text-3xl font-bold">0</p>
-            </div>
+        <div id="score-display" class="flex justify-between items-center mb-4 bg-gray-800 bg-opacity-50 p-3 rounded-lg shadow-inner min-h-[70px]">
+             <!-- Score content is generated dynamically -->
         </div>
         
-        <!-- Active power-ups display -->
         <div id="effects-display" class="h-8 flex justify-center items-center space-x-4 mb-2"></div>
 
-        <div id="game-container" class="relative w-full aspect-square mb-4">
+        <div id="game-container" class="relative w-full aspect-square mb-2">
             <canvas id="gameCanvas" class="w-full h-full"></canvas>
             
             <div id="menu-container">
-                <!-- Main Menu -->
-                <div id="menu-overlay" class="overlay">
-                    <p class="text-xl sm:text-2xl game-font text-yellow-400 mb-6">OYUN MODU</p>
-                    <button data-mode="classic" class="menu-btn control-btn bg-green-500 hover:bg-green-600 w-3/4 p-3 rounded-lg mb-4 game-font">KLASİK</button>
-                    <button data-mode="timeAttack" class="menu-btn control-btn bg-blue-500 hover:bg-blue-600 w-3/4 p-3 rounded-lg mb-4 game-font">ZAMANA KARŞI</button>
-                    <button data-mode="maze" class="menu-btn control-btn bg-purple-500 hover:bg-purple-600 w-3/4 p-3 rounded-lg mb-4 game-font">LABİRENT</button>
-                    <button id="theme-menu-btn" class="control-btn bg-gray-500 hover:bg-gray-600 w-3/4 p-2 rounded-lg game-font text-sm mt-4">TEMALAR</button>
-                </div>
-                <!-- Difficulty Menu -->
-                <div id="difficulty-overlay" class="overlay hidden">
-                     <p class="text-xl sm:text-2xl game-font text-yellow-400 mb-6">ZORLUK SEVİYESİ</p>
-                    <button data-difficulty="easy" class="difficulty-btn control-btn bg-green-500 hover:bg-green-600 w-3/4 p-3 rounded-lg mb-4 game-font">KOLAY</button>
-                    <button data-difficulty="medium" class="difficulty-btn control-btn bg-orange-500 hover:bg-orange-600 w-3/4 p-3 rounded-lg mb-4 game-font">ORTA</button>
-                    <button data-difficulty="hard" class="difficulty-btn control-btn bg-red-500 hover:bg-red-600 w-3/4 p-3 rounded-lg game-font">ZOR</button>
-                    <button class="back-btn control-btn bg-gray-500 w-3/4 p-2 mt-4 text-sm game-font">GERİ</button>
-                </div>
-                <!-- Theme Menu -->
-                <div id="theme-overlay" class="overlay hidden">
-                     <p class="text-xl sm:text-2xl game-font text-yellow-400 mb-6">TEMA SEÇ</p>
-                    <button data-theme="default" class="theme-btn control-btn bg-gray-700 w-3/4 p-3 rounded-lg mb-4 game-font">VARSAYILAN</button>
-                    <button data-theme="forest" class="theme-btn control-btn bg-green-800 w-3/4 p-3 rounded-lg mb-4 game-font">ORMAN</button>
-                    <button data-theme="ocean" class="theme-btn control-btn bg-blue-800 w-3/4 p-3 rounded-lg mb-4 game-font">OKYANUS</button>
-                    <button data-theme="neon" class="theme-btn control-btn bg-indigo-800 w-3/4 p-3 rounded-lg game-font">NEON</button>
-                    <button class="back-btn control-btn bg-gray-500 w-3/4 p-2 mt-4 text-sm game-font">GERİ</button>
-                </div>
+                <!-- All menus will be dynamically generated here -->
             </div>
 
-            <!-- Message Overlay (Game Over / Paused) -->
-            <div id="message-overlay" class="overlay" style="display: none;">
-                <p id="message-text" class="text-3xl game-font text-yellow-400"></p>
-                <p id="message-subtitle" class="mt-4 text-gray-300"></p>
-            </div>
+            <div id="message-overlay" class="overlay" style="display: none;"></div>
+             <div id="combo-display" class="absolute bottom-4 right-4 text-2xl game-font text-white" style="text-shadow: 2px 2px 4px #000;"></div>
+             <div id="achievement-popup" class="absolute top-4 left-1/2 -translate-x-1/2 p-2 rounded-lg game-font text-sm text-center hidden z-50"></div>
         </div>
         
-        <!-- Mobile Controls -->
-        <div id="mobile-controls" class="grid grid-cols-3 gap-2 w-full max-w-xs mx-auto md:hidden hidden">
-            <div></div>
-            <button id="btn-up" class="control-btn bg-green-500 hover:bg-green-600 rounded-lg p-4"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg></button>
-            <div></div>
-            <button id="btn-left" class="control-btn bg-green-500 hover:bg-green-600 rounded-lg p-4"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
-            <button id="btn-main-menu-mobile" class="control-btn bg-yellow-500 hover:bg-yellow-600 rounded-lg p-4 flex items-center justify-center game-font text-xs">MENÜ</button>
-            <button id="btn-right" class="control-btn bg-green-500 hover:bg-green-600 rounded-lg p-4"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
-            <div></div>
-            <button id="btn-down" class="control-btn bg-green-500 hover:bg-green-600 rounded-lg p-4"><svg class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
-            <div></div>
-        </div>
-
-        <button id="btn-main-menu-desktop" class="hidden md:block control-btn bg-yellow-500 hover:bg-yellow-600 rounded-lg p-4 mt-4 w-full max-w-xs mx-auto game-font text-xl hidden">
-            ANA MENÜ
-        </button>
+        <button id="btn-main-menu" class="hidden md:block control-btn bg-yellow-500 hover:bg-yellow-600 rounded-lg p-3 mt-2 w-full max-w-xs mx-auto game-font text-lg">ANA MENÜ</button>
     </div>
 
 <script>
-    // --- DOM Elements ---
+    // --- DOM Elements & Game State ---
     const canvas = document.getElementById('gameCanvas'), ctx = canvas.getContext('2d');
-    const scoreEl = document.getElementById('score'), highScoreEl = document.getElementById('highScore');
-    const centerDisplay = document.getElementById('center-display'), effectsDisplay = document.getElementById('effects-display');
-    const menuContainer = document.getElementById('menu-container'), messageOverlay = document.getElementById('message-overlay');
-    const messageText = document.getElementById('message-text'), messageSubtitle = document.getElementById('message-subtitle');
-    const mobileControls = document.getElementById('mobile-controls'), desktopMainMenuBtn = document.getElementById('btn-main-menu-desktop');
-    
-    // --- Game State ---
-    const gridSize = 20;
-    let canvasSize, tileCount;
-    let snake, food, powerups, score, highScore, direction, changingDirection;
-    let isGameOver, isPaused, gameLoop, gameSpeed, initialSpeed, difficulty, gameMode, timer;
-    let obstacles = [], activeEffects = {};
-
-    const themes = {
-        default: { '--bg-color': '#1a202c', '--snake-color': '#48bb78', '--food-color': '#f56565', '--obstacle-color': '#718096', '--text-color': '#f7fafc', '--accent-color': '#f6e05e', '--snake-head-color': '#a0fec0' },
-        forest: { '--bg-color': '#2f3e2f', '--snake-color': '#84a98c', '--food-color': '#e56b6f', '--obstacle-color': '#524636', '--text-color': '#cad2c5', '--accent-color': '#f6e05e', '--snake-head-color': '#a7d5b9' },
-        ocean: { '--bg-color': '#003049', '--snake-color': '#669bbc', '--food-color': '#f77f00', '--obstacle-color': '#d62828', '--text-color': '#eae2b7', '--accent-color': '#fcbf49', '--snake-head-color': '#8eb9d4' },
-        neon: { '--bg-color': '#0d0221', '--snake-color': '#00f5d4', '--food-color': '#ff0054', '--obstacle-color': '#9b5de5', '--text-color': '#f7f7ff', '--accent-color': '#fee440', '--snake-head-color': '#80ffee' },
+    const elements = {
+        scoreDisplay: document.getElementById('score-display'),
+        effectsDisplay: document.getElementById('effects-display'),
+        menuContainer: document.getElementById('menu-container'),
+        messageOverlay: document.getElementById('message-overlay'),
+        comboDisplay: document.getElementById('combo-display'),
+        achievementPopup: document.getElementById('achievement-popup'),
+        mainMenuBtn: document.getElementById('btn-main-menu'),
     };
-    
+    const gridSize = 20; let canvasSize, tileCount;
+    let state = {};
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+
+    // --- Config & Data ---
+    const themes = {
+        default: { '--bg-color': '#1a202c', '--snake-color': '#48bb78', '--food-color': '#f56565', '--obstacle-color': '#718096', '--text-color': '#f7fafc', '--accent-color': '#f6e05e', '--snake-head-color': '#a0fec0', '--snake2-color': '#63b3ed', '--snake2-head-color': '#a3d8f4' },
+        forest: { '--bg-color': '#2f3e2f', '--snake-color': '#84a98c', '--food-color': '#e56b6f', '--obstacle-color': '#524636', '--text-color': '#cad2c5', '--accent-color': '#f6e05e', '--snake-head-color': '#a7d5b9', '--snake2-color': '#a8d5e2', '--snake2-head-color': '#c3e0e8'},
+        ocean: { '--bg-color': '#003049', '--snake-color': '#669bbc', '--food-color': '#f77f00', '--obstacle-color': '#d62828', '--text-color': '#eae2b7', '--accent-color': '#fcbf49', '--snake-head-color': '#8eb9d4', '--snake2-color': '#f9a620', '--snake2-head-color': '#fbc05e'},
+        neon: { '--bg-color': '#0d0221', '--snake-color': '#00f5d4', '--food-color': '#ff0054', '--obstacle-color': '#9b5de5', '--text-color': '#f7f7ff', '--accent-color': '#fee440', '--snake-head-color': '#80ffee', '--snake2-color': '#f15bb5', '--snake2-head-color': '#f68cd1' },
+    };
+    const skins = {
+        default: { name: 'Klasik', cost: 0, draw: (part, index, playerIndex) => { /* Uses theme colors */ }},
+        rainbow: { name: 'Gökkuşağı', cost: 1000, draw: (part, index, playerIndex) => { ctx.fillStyle = `hsl(${(state.frameCount + index * 10) % 360}, 100%, 60%)`; }},
+        stripes: { name: 'Çizgili', cost: 2500, draw: (part, index, playerIndex) => {
+            const color1 = getCssVar(playerIndex === 0 ? '--snake-color' : '--snake2-color');
+            const color2 = getCssVar(playerIndex === 0 ? '--snake-head-color' : '--snake2-head-color');
+            ctx.fillStyle = index % 2 === 0 ? color1 : color2;
+        }}
+    };
+    const achievements = {
+        acemi: { name: 'Acemi', desc: 'Toplam 500 puana ulaş.', unlocked: false, condition: s => s.totalScore >= 500 },
+        usta: { name: 'Usta', desc: 'Zor modda bir oyun bitir.', unlocked: false, condition: s => s.lastGame?.mode === 'classic' && s.lastGame?.difficulty === 'hard' },
+        koleksiyoncu: { name: 'Koleksiyoncu', desc: 'Bir oyunda 3 farklı güçlendirme topla.', unlocked: false, condition: s => new Set(s.lastGame?.powerupsCollected).size >= 3 },
+        hayalet: { name: 'Hayalet Sürücü', desc: 'Hayalet modunda bir duvardan geç.', unlocked: false, condition: s => s.lastGame?.ghostedThroughWall },
+    };
+    const powerupTypes = [
+        { type: 'turtle', icon: '🐢', isMalus: false }, { type: 'scissors', icon: '✂️', isMalus: false }, { type: 'ghost', icon: '👻', isMalus: false },
+        { type: 'reverse', icon: '❓', isMalus: true }, { type: 'poison', icon: '☠️', isMalus: true }, { type: 'bolt', icon: '⚡', isMalus: true },
+    ];
+
     // --- Sound Synthesis ---
     const synth = new Tone.Synth().toDestination();
     const sounds = {
-        eat: () => synth.triggerAttackRelease("C5", "8n"),
-        powerup: () => synth.triggerAttackRelease("G5", "8n"),
-        gameOver: () => synth.triggerAttackRelease("C3", "4n"),
-        pause: () => synth.triggerAttackRelease("E4", "8n"),
+        eat: () => synth.triggerAttackRelease("C5", "8n"), powerup: () => synth.triggerAttackRelease("G5", "8n"), malus: () => synth.triggerAttackRelease("C4", "8n"),
+        gameOver: () => synth.triggerAttackRelease("C3", "4n"), pause: () => synth.triggerAttackRelease("E4", "8n"), achievement: () => synth.triggerAttackRelease("A5", "4n"),
     };
 
-    // --- Game Initialization ---
-    function initializeGame() {
-        if (gameLoop) clearTimeout(gameLoop);
-        Object.values(activeEffects).forEach(effect => clearTimeout(effect.timeout));
+    // --- Game Initialization & State Management ---
+    function resetGameState() {
+        if (state.gameLoop) clearTimeout(state.gameLoop);
+        if (state.comboTimeout) clearTimeout(state.comboTimeout);
+        Object.values(state.activeEffects || {}).forEach(e => clearTimeout(e.timeout));
 
+        state = {
+            ...state,
+            players: [], frameCount: 0,
+            food: {}, powerups: [], obstacles: [], activeEffects: {},
+            gameSpeed: 120, initialSpeed: 120, combo: 1,
+            isGameOver: false, isPaused: false, lastGame: null
+        };
+    }
+    
+    function initializeGame() {
+        loadData();
+        resetGameState();
         setupCanvas();
+
+        elements.messageOverlay.style.display = 'none';
+        elements.menuContainer.style.display = 'block';
+        showMenuScreen('main');
         
-        snake = [{ x: 10, y: 10 }]; score = 0; powerups = []; obstacles = [];
-        highScore = localStorage.getItem('snakeHighScore') || 0;
-        direction = { x: 0, y: 0 };
-        isGameOver = false; isPaused = false; changingDirection = false; activeEffects = {};
-        
-        scoreEl.textContent = score; highScoreEl.textContent = highScore;
-        
-        messageOverlay.style.display = 'none';
-        menuContainer.style.display = 'block';
-        showMenuScreen('menu-overlay');
-        
-        mobileControls.classList.add('hidden');
-        desktopMainMenuBtn.classList.add('hidden');
-        centerDisplay.innerHTML = '';
-        effectsDisplay.innerHTML = '';
+        elements.mainMenuBtn.classList.add('hidden');
+        elements.effectsDisplay.innerHTML = '';
+        elements.comboDisplay.innerHTML = '';
+        renderScoreDisplay();
     }
 
-    function startGame(_gameMode, _difficulty = null) {
-        gameMode = _gameMode;
-        difficulty = _difficulty;
-
-        switch(gameMode) {
-            case 'classic':
-                if (!difficulty) return;
-                const speeds = { easy: 150, medium: 120, hard: 90 };
-                initialSpeed = speeds[difficulty];
-                break;
-            case 'timeAttack':
-                initialSpeed = 80; timer = 90; break;
-            case 'maze':
-                initialSpeed = 130; break;
-        }
-        gameSpeed = initialSpeed;
+    function startGame(options) {
+        resetGameState();
+        state = { ...state, ...options, lastGame: { powerupsCollected: [], ghostedThroughWall: false } };
         
-        menuContainer.style.display = 'none';
-        mobileControls.classList.remove('hidden');
-        desktopMainMenuBtn.classList.remove('hidden');
+        // Player Setup
+        const startPos = [{x: 5, y: 10}, {x: 14, y: 10}];
+        const startDir = [{x: 1, y: 0}, {x: -1, y: 0}];
+        for(let i=0; i < state.playerCount; i++) {
+            state.players.push({
+                snake: [startPos[i]],
+                direction: startDir[i],
+                changingDirection: false,
+                isReversed: false,
+                score: 0,
+                controls: i === 0 ? state.controlsP1 : state.controlsP2,
+            });
+        }
+        
+        // Mode specific setup
+        if (state.mode === 'classic' || state.mode === 'twoPlayer') {
+            const speeds = { easy: 150, medium: 120, hard: 90 };
+            state.initialSpeed = speeds[state.difficulty];
+        } else if (state.mode === 'timeAttack') {
+            state.initialSpeed = 80; state.timer = 90;
+        } else if (state.mode === 'maze') {
+            state.initialSpeed = 130;
+        }
+        state.gameSpeed = state.initialSpeed;
+        
+        elements.menuContainer.innerHTML = ''; // Clear all menus
+        elements.menuContainer.style.display = 'none';
+        elements.mainMenuBtn.classList.remove('hidden');
         
         createObstacles();
         generateFood();
+        renderScoreDisplay();
+        renderCenterDisplay();
         
-        // Setup central display (Timer or Pause Button)
-        if (gameMode === 'timeAttack') {
-            centerDisplay.innerHTML = `<div class="game-font text-lg">SÜRE: <span id="timer-display">${timer}</span></div>`;
-        } else {
-            centerDisplay.innerHTML = `<button id="pause-btn" class="control-btn bg-blue-500 hover:bg-blue-600 rounded-lg p-2 text-sm game-font">DURAKLAT</button>`;
-            document.getElementById('pause-btn').addEventListener('click', togglePause);
-        }
-
-        changeDirection('RIGHT');
+        main();
     }
 
     // --- Game Loop ---
     function main() {
-        if (isPaused || isGameOver) {
-            if (isGameOver) handleGameOver();
+        if (state.isPaused || state.isGameOver) {
+            if (state.isGameOver) handleGameOver();
             return;
         }
 
-        changingDirection = false;
+        state.frameCount++;
         
-        gameLoop = setTimeout(() => {
-            if (gameMode === 'timeAttack') handleTimer();
+        state.gameLoop = setTimeout(() => {
+            if (state.mode === 'timeAttack') handleTimer();
             clearCanvas();
             drawObstacles();
             drawFood();
             drawPowerups();
-            moveSnake();
-            drawSnake();
+            state.players.forEach((p, i) => moveSnake(i));
+            state.players.forEach((p, i) => drawSnake(i));
             main();
-        }, gameSpeed);
+        }, state.gameSpeed);
     }
     
     // --- Drawing ---
-    function clearCanvas() { ctx.fillStyle = getCssVar('--bg-color'); ctx.fillRect(0, 0, canvas.width, canvas.height); }
-    function drawSnake() {
-        const isGhost = activeEffects.ghost;
-        snake.forEach((part, index) => {
-            ctx.globalAlpha = isGhost ? 0.6 : 1.0;
-            ctx.fillStyle = index === 0 ? getCssVar('--snake-head-color') : getCssVar('--snake-color');
+    function getCssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+    
+    function drawSnake(playerIndex) {
+        if (!state.players[playerIndex]) return;
+        const player = state.players[playerIndex];
+        const skin = skins[state.currentSkin];
+        
+        player.snake.forEach((part, index) => {
+            ctx.globalAlpha = state.activeEffects.ghost ? 0.6 : 1.0;
             ctx.strokeStyle = getCssVar('--bg-color');
+            ctx.lineWidth = 2;
+
+            if (skin && typeof skin.draw === 'function' && skin.name !== 'Klasik') {
+                skin.draw(part, index, playerIndex);
+            } else {
+                ctx.fillStyle = index === 0 
+                    ? getCssVar(playerIndex === 0 ? '--snake-head-color' : '--snake2-head-color')
+                    : getCssVar(playerIndex === 0 ? '--snake-color' : '--snake2-color');
+            }
+            
             ctx.fillRect(part.x * tileCount, part.y * tileCount, tileCount, tileCount);
             ctx.strokeRect(part.x * tileCount, part.y * tileCount, tileCount, tileCount);
             ctx.globalAlpha = 1.0;
         });
     }
+
     function drawFood() {
+        if (state.food?.x === undefined) return;
         ctx.fillStyle = getCssVar('--food-color');
         ctx.beginPath();
-        ctx.arc(food.x * tileCount + tileCount / 2, food.y * tileCount + tileCount / 2, tileCount / 2.5, 0, 2 * Math.PI);
+        ctx.arc(state.food.x * tileCount + tileCount / 2, state.food.y * tileCount + tileCount / 2, tileCount / 2.5, 0, 2 * Math.PI);
         ctx.fill();
     }
+
     function drawPowerups() {
         ctx.font = `${tileCount * 0.8}px sans-serif`;
-        powerups.forEach(p => {
-             ctx.fillText(p.icon, p.x * tileCount, (p.y + 0.8) * tileCount);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        state.powerups.forEach(p => {
+             ctx.fillText(p.icon, p.x * tileCount + tileCount/2, p.y * tileCount + tileCount/2);
         });
     }
+
     function drawObstacles() {
         ctx.fillStyle = getCssVar('--obstacle-color');
-        obstacles.forEach(ob => ctx.fillRect(ob.x * tileCount, ob.y * tileCount, tileCount, tileCount));
+        state.obstacles.forEach(ob => ctx.fillRect(ob.x * tileCount, ob.y * tileCount, tileCount, tileCount));
     }
-    
-    // --- Logic ---
-    function moveSnake() {
-        if (direction.x === 0 && direction.y === 0) return;
-        let head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
 
-        const isGhost = activeEffects.ghost;
-        // Wall collision / wrapping
+    function clearCanvas() { ctx.fillStyle = getCssVar('--bg-color'); ctx.fillRect(0, 0, canvas.width, canvas.height); }
+
+    // --- Logic ---
+    function moveSnake(playerIndex) {
+        if (!state.players[playerIndex]) return;
+        const player = state.players[playerIndex];
+        player.changingDirection = false;
+        let head = { x: player.snake[0].x + player.direction.x, y: player.snake[0].y + player.direction.y };
+
+        const isGhost = state.activeEffects.ghost;
         if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize) {
             if(isGhost) {
+                if(state.lastGame) state.lastGame.ghostedThroughWall = true;
                 if (head.x < 0) head.x = gridSize - 1; else if (head.x >= gridSize) head.x = 0;
                 if (head.y < 0) head.y = gridSize - 1; else if (head.y >= gridSize) head.y = 0;
-            } else { isGameOver = true; return; }
+            } else { state.isGameOver = true; return; }
         }
-        
-        snake.unshift(head);
+        player.snake.unshift(head);
 
-        // Self and obstacle collision
-        const hitSelf = snake.slice(1).some(part => part.x === head.x && part.y === head.y);
-        const hitObstacle = obstacles.some(ob => ob.x === head.x && ob.y === head.y);
-        if ((hitSelf || hitObstacle) && !isGhost) { isGameOver = true; return; }
+        const hitSelf = player.snake.slice(1).some(part => part.x === head.x && part.y === head.y);
+        const hitObstacle = state.obstacles.some(ob => ob.x === head.x && ob.y === head.y);
+        const hitOtherPlayer = state.playerCount > 1 && state.players[1-playerIndex] && state.players[1-playerIndex].snake.some(p => p.x === head.x && p.y === head.y);
 
-        // Food collision
+        if ((hitSelf || hitObstacle || hitOtherPlayer) && !isGhost) { state.isGameOver = true; return; }
+
         let ateNormalFood = false;
-        if (head.x === food.x && head.y === food.y) {
+        if (head.x === state.food.x && head.y === state.food.y) {
             ateNormalFood = true;
-            score += 10;
+            if(state.comboTimeout) clearTimeout(state.comboTimeout);
+            state.combo = (state.combo || 1) + 1;
+            elements.comboDisplay.textContent = `x${state.combo} KOMBO!`;
+            state.comboTimeout = setTimeout(() => { state.combo = 1; elements.comboDisplay.innerHTML = ''; }, 3000);
+
+            player.score += 10 * state.combo;
             sounds.eat();
             generateFood();
-            if (gameMode === 'classic' && gameSpeed > 40) gameSpeed -= 1;
-            if (Math.random() > 0.65) spawnPowerup(); // 35% chance to spawn powerup
+            if ((state.mode === 'classic' || state.mode === 'twoPlayer') && state.gameSpeed > 40) state.gameSpeed -= 1;
+            if (Math.random() > 0.6) spawnPowerup();
         }
         
-        // Power-up collision
-        const powerupIndex = powerups.findIndex(p => p.x === head.x && p.y === head.y);
+        const powerupIndex = state.powerups.findIndex(p => p.x === head.x && p.y === head.y);
         if (powerupIndex !== -1) {
-            const powerup = powerups.splice(powerupIndex, 1)[0];
-            activatePowerup(powerup.type);
+            const powerup = state.powerups.splice(powerupIndex, 1)[0];
+            if(state.lastGame) state.lastGame.powerupsCollected.push(powerup.type);
+            activatePowerup(powerup.type, playerIndex);
         }
         
-        if (!ateNormalFood) snake.pop();
-        scoreEl.textContent = score;
+        if (!ateNormalFood) player.snake.pop();
+        renderScoreDisplay();
     }
 
-    function changeDirection(newDirection) {
-        const isStarting = direction.x === 0 && direction.y === 0;
-        if (changingDirection && !isStarting) return;
-        const goingUp = direction.y === -1, goingDown = direction.y === 1, goingRight = direction.x === 1, goingLeft = direction.x === -1;
+    function changeDirection(playerIndex, newDirection) {
+        if (!state.players || !state.players[playerIndex]) return;
+        const player = state.players[playerIndex];
+        if (player.changingDirection) return;
 
-        let validMove = false;
-        if (newDirection === 'UP' && !goingDown) { direction = { x: 0, y: -1 }; validMove = true; }
-        if (newDirection === 'DOWN' && !goingUp) { direction = { x: 0, y: 1 }; validMove = true; }
-        if (newDirection === 'LEFT' && !goingRight) { direction = { x: -1, y: 0 }; validMove = true; }
-        if (newDirection === 'RIGHT' && !goingLeft) { direction = { x: 1, y: 0 }; validMove = true; }
+        const dir = player.direction;
+        let requestedDir = {x: dir.x, y: dir.y};
+        if(newDirection === 'UP') requestedDir = { x: 0, y: -1 };
+        if(newDirection === 'DOWN') requestedDir = { x: 0, y: 1 };
+        if(newDirection === 'LEFT') requestedDir = { x: -1, y: 0 };
+        if(newDirection === 'RIGHT') requestedDir = { x: 1, y: 0 };
         
-        if (validMove) changingDirection = true;
-        if (isStarting && validMove) main();
+        if (player.isReversed) {
+            requestedDir.x *= -1;
+            requestedDir.y *= -1;
+        }
+
+        if (dir.x + requestedDir.x !== 0 || dir.y + requestedDir.y !== 0) {
+            player.direction = requestedDir;
+            player.changingDirection = true;
+        }
     }
     
     // --- Power-ups & Effects ---
-    const powerupTypes = [
-        { type: 'turtle', icon: '🐢' },
-        { type: 'scissors', icon: '✂️' },
-        { type: 'ghost', icon: '👻' },
-    ];
     function spawnPowerup() {
-        if (powerups.length > 2) return;
+        if (state.powerups.length > 2) return;
         const randomType = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
         const { x, y } = generateCoordinates();
-        powerups.push({ x, y, ...randomType });
+        state.powerups.push({ x, y, ...randomType });
     }
-    function activatePowerup(type) {
-        sounds.powerup();
-        if (activeEffects[type]) clearTimeout(activeEffects[type].timeout); // Reset timer if already active
-        
-        let duration = 7000; // 7 seconds
+
+    function activatePowerup(type, playerIndex) {
+        if (!state.players || !state.players[playerIndex]) return;
+        const player = state.players[playerIndex];
+        const effect = powerupTypes.find(p => p.type === type);
+        effect.isMalus ? sounds.malus() : sounds.powerup();
+
+        if (state.activeEffects[type]) clearTimeout(state.activeEffects[type].timeout);
+        let duration = 7000; 
+
         switch(type) {
             case 'turtle':
-                if(!activeEffects.turtle) { // only store original speed if not already slowed
-                    activeEffects.turtle = { originalSpeed: gameSpeed };
-                }
-                gameSpeed = initialSpeed + 50;
-                break;
+                if(!state.activeEffects.turtle) state.activeEffects.turtle = { originalSpeed: state.gameSpeed };
+                state.gameSpeed = state.initialSpeed + 50; break;
             case 'scissors':
-                const cutAmount = Math.min(snake.length - 2, 5);
-                if(cutAmount > 0) snake.splice(snake.length - cutAmount);
-                score += cutAmount * 5; // Bonus points for shortening
-                return; // No duration needed
-            case 'ghost':
-                duration = 5000; // 5 seconds for ghost
-                break;
+                const cutAmount = Math.min(player.snake.length - 2, 5);
+                if(cutAmount > 0) player.snake.splice(player.snake.length - cutAmount);
+                player.score += cutAmount * 5; return;
+            case 'ghost': duration = 5000; break;
+            case 'reverse': player.isReversed = true; duration = 6000; break;
+            case 'poison': player.score = Math.max(0, player.score - 50); renderScoreDisplay(); return;
+            case 'bolt':
+                if(!state.activeEffects.bolt) state.activeEffects.bolt = { originalSpeed: state.gameSpeed };
+                state.gameSpeed = Math.max(40, state.initialSpeed - 40); break;
         }
-
-        const timeout = setTimeout(() => deactivatePowerup(type), duration);
-        activeEffects[type] = { ...activeEffects[type], timeout, duration, startTime: Date.now() };
+        
+        const timeout = setTimeout(() => deactivatePowerup(type, playerIndex), duration);
+        state.activeEffects[type] = { timeout };
         updateEffectsDisplay();
     }
 
-    function deactivatePowerup(type) {
-        if(type === 'turtle' && activeEffects.turtle) gameSpeed = activeEffects.turtle.originalSpeed;
-        delete activeEffects[type];
+    function deactivatePowerup(type, playerIndex) {
+        if(type === 'turtle' && state.activeEffects.turtle) state.gameSpeed = state.activeEffects.turtle.originalSpeed;
+        if(type === 'bolt' && state.activeEffects.bolt) state.gameSpeed = state.activeEffects.bolt.originalSpeed;
+        if(type === 'reverse' && state.players[playerIndex]) state.players[playerIndex].isReversed = false;
+        delete state.activeEffects[type];
         updateEffectsDisplay();
     }
 
     function updateEffectsDisplay() {
-        effectsDisplay.innerHTML = '';
-        for(const type in activeEffects) {
-            const effect = activeEffects[type];
-            if (effect.duration) { // Only show timed effects
-                const icon = powerupTypes.find(p => p.type === type).icon;
-                effectsDisplay.innerHTML += `<div class="powerup-icon" id="effect-${type}">${icon}</div>`;
-            }
+        elements.effectsDisplay.innerHTML = '';
+        for(const type in state.activeEffects) {
+            const icon = powerupTypes.find(p => p.type === type).icon;
+            elements.effectsDisplay.innerHTML += `<div class="powerup-icon" id="effect-${type}">${icon}</div>`;
         }
     }
-
-    // --- Utility Functions ---
+    
+    // --- Utility, UI & Event Handlers ---
     function setupCanvas() {
         const container = document.getElementById('game-container');
         canvasSize = container.offsetWidth;
         canvas.width = canvasSize; canvas.height = canvasSize;
         tileCount = canvas.width / gridSize;
     }
+
     function isLocationOccupied(x, y) {
-        return snake.some(p => p.x === x && p.y === y) || obstacles.some(o => o.x === x && o.y === y);
+        if (!state.players) return false;
+        const allSnakes = state.players.flatMap(p => p.snake);
+        return allSnakes.some(p => p.x === x && p.y === y) || (state.obstacles && state.obstacles.some(o => o.x === x && o.y === y));
     }
+    
     function generateCoordinates() {
         let x, y;
-        do { x = Math.floor(Math.random() * gridSize); y = Math.floor(Math.random() * gridSize);
+        let attempts = 0;
+        do {
+            x = Math.floor(Math.random() * gridSize);
+            y = Math.floor(Math.random() * gridSize);
+            attempts++;
+            if (attempts > gridSize * gridSize) return {x: -1, y: -1}; // Avoid infinite loop if board is full
         } while (isLocationOccupied(x, y));
         return { x, y };
     }
-    function generateFood() { food = generateCoordinates(); }
+    
+    function generateFood() { state.food = generateCoordinates(); }
+
     function createObstacles() {
-        obstacles = [];
-        if (gameMode === 'classic') {
-            if (difficulty === 'easy') return;
-            const count = difficulty === 'medium' ? 5 : 10;
-            for(let i=0; i<count; i++) obstacles.push(generateCoordinates());
-        } else if (gameMode === 'maze') {
-            // Simple maze generation
+        state.obstacles = [];
+        if (state.mode === 'classic' && state.playerCount === 1) {
+            if (state.difficulty === 'easy') return;
+            const count = state.difficulty === 'medium' ? 5 : 10;
+            for(let i=0; i<count; i++) state.obstacles.push(generateCoordinates());
+        } else if (state.mode === 'maze') {
             for (let i = 2; i < gridSize - 2; i++) {
-                if (Math.random() > 0.5) obstacles.push({x: i, y: 4}, {x: gridSize-1-i, y: gridSize-5});
-                else obstacles.push({x: 4, y: i}, {x: gridSize-5, y: gridSize-1-i});
+                if (Math.random() > 0.5) {
+                    if(!isLocationOccupied(i, 4)) state.obstacles.push({x: i, y: 4});
+                    if(!isLocationOccupied(gridSize-1-i, gridSize-5)) state.obstacles.push({x: gridSize-1-i, y: gridSize-5});
+                } else {
+                    if(!isLocationOccupied(4, i)) state.obstacles.push({x: 4, y: i});
+                    if(!isLocationOccupied(gridSize-5, gridSize-1-i)) state.obstacles.push({x: gridSize-5, y: gridSize-1-i});
+                }
             }
         }
     }
+    
     function togglePause() {
-        if (isGameOver || gameMode === 'timeAttack') return;
-        isPaused = !isPaused;
+        if (state.isGameOver || state.mode === 'timeAttack') return;
+        state.isPaused = !state.isPaused;
         sounds.pause();
         const pauseBtn = document.getElementById('pause-btn');
-        if (isPaused) {
-            clearTimeout(gameLoop);
-            messageText.textContent = 'DURAKLATILDI';
-            messageSubtitle.textContent = 'Devam etmek için butona veya P tuşuna basın.';
-            messageOverlay.style.display = 'flex';
-            pauseBtn.textContent = 'DEVAM ET';
+        if (state.isPaused) {
+            clearTimeout(state.gameLoop);
+            renderMessageOverlay('DURAKLATILDI', 'Devam etmek için dokunun veya P\'ye basın.');
+            if(pauseBtn) pauseBtn.textContent = 'DEVAM ET';
         } else {
-            messageOverlay.style.display = 'none';
-            pauseBtn.textContent = 'DURAKLAT';
+            elements.messageOverlay.style.display = 'none';
+            if(pauseBtn) pauseBtn.textContent = 'DURAKLAT';
             main();
         }
     }
+    
     function handleGameOver() {
         sounds.gameOver();
-        if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('snakeHighScore', highScore);
-            highScoreEl.textContent = highScore;
+        let totalScore = state.players.reduce((sum, p) => sum + p.score, 0);
+        if(state.lastGame) state.lastGame.score = totalScore;
+
+        if (state.playerCount === 1 && totalScore > (state.highScore || 0)) {
+            state.highScore = totalScore;
         }
-        messageText.innerHTML = `OYUN BİTTİ!<br><span class="text-xl">SKOR: ${score}</span>`;
-        messageSubtitle.textContent = 'Yeniden oynamak için Ana Menü\'ye dönün.';
-        messageOverlay.style.display = 'flex';
-        centerDisplay.innerHTML = '';
-        desktopMainMenuBtn.textContent = 'ANA MENÜ';
+        state.totalScore = (state.totalScore || 0) + totalScore;
+        
+        checkAchievements();
+        saveData();
+
+        let message = ``;
+        if (state.playerCount > 1) {
+            const p1Score = state.players[0]?.score || 0;
+            const p2Score = state.players[1]?.score || 0;
+            const winner = p1Score > p2Score ? '1. OYUNCU KAZANDI!' : (p2Score > p1Score ? '2. OYUNCU KAZANDI!' : 'BERABERE!');
+            message = `${winner}<br><span class="text-xl">P1: ${p1Score} | P2: ${p2Score}</span>`;
+        } else {
+            message = `OYUN BİTTİ!<br><span class="text-xl">SKOR: ${totalScore}</span>`;
+        }
+        
+        renderMessageOverlay(message, 'Ana Menü\'ye dönmek için dokunun.');
+        elements.scoreDisplay.querySelector('#center-display')?.remove();
     }
+
     function handleTimer() {
-        timer -= gameSpeed / 1000;
-        document.getElementById('timer-display').textContent = Math.ceil(timer);
-        if (timer <= 0) {
-            isGameOver = true;
-            document.getElementById('timer-display').textContent = 0;
+        if (state.timer === undefined) return;
+        state.timer -= state.gameSpeed / 1000;
+        const timerDisplay = document.getElementById('timer-display');
+        if (timerDisplay) timerDisplay.textContent = Math.ceil(state.timer);
+        if (state.timer <= 0) {
+            state.isGameOver = true;
+            if (timerDisplay) timerDisplay.textContent = 0;
         }
     }
     
-    // --- UI & Menu Handling ---
-    function showMenuScreen(screenId) {
-        document.querySelectorAll('#menu-container .overlay').forEach(el => el.classList.add('hidden'));
-        document.getElementById(screenId).classList.remove('hidden');
+    // --- Data Persistence ---
+    function loadData() {
+        state.highScore = parseInt(localStorage.getItem('snakeHighScore') || '0');
+        state.totalScore = parseInt(localStorage.getItem('snakeTotalScore') || '0');
+        state.currentSkin = localStorage.getItem('snakeCurrentSkin') || 'default';
+        const unlockedSkins = JSON.parse(localStorage.getItem('snakeUnlockedSkins') || '["default"]');
+        const savedAchievements = JSON.parse(localStorage.getItem('snakeAchievements') || '{}');
+        Object.keys(achievements).forEach(key => {
+            achievements[key].unlocked = savedAchievements[key] || false;
+        });
+        state.unlockedSkins = new Set(unlockedSkins);
     }
+
+    function saveData() {
+        localStorage.setItem('snakeHighScore', state.highScore);
+        localStorage.setItem('snakeTotalScore', state.totalScore);
+        localStorage.setItem('snakeCurrentSkin', state.currentSkin);
+        localStorage.setItem('snakeUnlockedSkins', JSON.stringify([...state.unlockedSkins]));
+        const achievementsToSave = {};
+        Object.keys(achievements).forEach(key => { achievementsToSave[key] = achievements[key].unlocked; });
+        localStorage.setItem('snakeAchievements', JSON.stringify(achievementsToSave));
+    }
+    
+    // --- Achievement Logic ---
+    function checkAchievements() {
+        const newlyUnlocked = [];
+        Object.keys(achievements).forEach(key => {
+            if (!achievements[key].unlocked && achievements[key].condition(state)) {
+                achievements[key].unlocked = true;
+                newlyUnlocked.push(achievements[key].name);
+            }
+        });
+
+        if (newlyUnlocked.length > 0) {
+            newlyUnlocked.forEach((name, index) => {
+                setTimeout(() => {
+                    showAchievementPopup(name);
+                }, index * 500); // Stagger popups by 500ms
+            });
+        }
+    }
+
+    // --- Dynamic UI Rendering ---
+    function renderScoreDisplay() {
+        let content = '';
+        const p1Score = state.players[0]?.score ?? 0;
+        const p2Score = state.players[1]?.score ?? 0;
+
+        if(state.playerCount > 1) {
+            content = `
+                <div class="text-left w-2/5">
+                    <p class="text-xs sm:text-base game-font text-green-400">P1 SKOR</p>
+                    <p class="text-lg sm:text-2xl font-bold">${p1Score}</p>
+                </div>
+                <div class="text-right w-2/5">
+                    <p class="text-xs sm:text-base game-font text-blue-400">P2 SKOR</p>
+                    <p class="text-lg sm:text-2xl font-bold">${p2Score}</p>
+                </div>`;
+        } else {
+             content = `
+                <div class="text-left w-1/3">
+                    <p class="text-xs sm:text-lg game-font">SKOR</p>
+                    <p id="score" class="text-xl sm:text-3xl font-bold">${p1Score}</p>
+                </div>
+                <div id="center-display" class="text-center w-1/3"></div>
+                <div class="text-right w-1/3">
+                    <p class="text-xs sm:text-lg game-font">REKOR</p>
+                    <p id="highScore" class="text-xl sm:text-3xl font-bold">${state.highScore || 0}</p>
+                </div>`;
+        }
+        elements.scoreDisplay.innerHTML = content;
+        if (state.mode && state.playerCount === 1) renderCenterDisplay();
+    }
+
+    function renderCenterDisplay() {
+        const centerEl = elements.scoreDisplay.querySelector('#center-display');
+        if(!centerEl) return;
+        if (state.mode === 'timeAttack') {
+            centerEl.innerHTML = `<div class="game-font text-base sm:text-lg">SÜRE<br><span id="timer-display">${state.timer}</span></div>`;
+        } else {
+            centerEl.innerHTML = `<button id="pause-btn" class="control-btn bg-blue-500 hover:bg-blue-600 rounded-lg p-2 text-sm game-font">DURAKLAT</button>`;
+            const pauseBtn = document.getElementById('pause-btn');
+            if(pauseBtn) pauseBtn.addEventListener('click', togglePause);
+        }
+    }
+
+    function renderMessageOverlay(title, subtitle) {
+        elements.messageOverlay.innerHTML = `<p class="text-2xl sm:text-3xl game-font text-yellow-400">${title}</p><p class="mt-4 text-gray-300">${subtitle}</p>`;
+        elements.messageOverlay.style.display = 'flex';
+    }
+    
+    function showMenuScreen(type, options = {}) {
+        let content = '';
+        switch(type) {
+            case 'main':
+                content = `<div class="overlay">
+                    <p class="text-xl sm:text-2xl game-font text-yellow-400 mb-6">OYUN MODU</p>
+                    <button data-menu="sp-menu" class="menu-nav-btn control-btn bg-green-500 w-3/4 p-3 mb-3 game-font">1 OYUNCU</button>
+                    <button data-menu="difficulty" data-options='{"playerCount": 2, "mode": "twoPlayer"}' class="menu-nav-btn control-btn bg-blue-500 w-3/4 p-3 mb-3 game-font">2 OYUNCU</button>
+                    <div class="flex w-3/4 space-x-2">
+                        <button data-menu="skins" class="menu-nav-btn control-btn bg-purple-500 w-1/2 p-2 game-font text-xs">GÖRÜNÜM</button>
+                        <button data-menu="achievements" class="menu-nav-btn control-btn bg-orange-500 w-1/2 p-2 game-font text-xs">BAŞARIM</button>
+                    </div>
+                     <button data-menu="themes" class="menu-nav-btn control-btn bg-gray-500 w-3/4 p-2 game-font text-sm mt-3">TEMA</button>
+                </div>`;
+                break;
+            case 'sp-menu':
+                content = `<div class="overlay">
+                    <p class="text-xl sm:text-2xl game-font text-yellow-400 mb-6">1 OYUNCU</p>
+                    <button data-menu="difficulty" data-options='{"playerCount": 1, "mode": "classic"}' class="menu-nav-btn control-btn bg-green-500 w-3/4 p-3 mb-3 game-font">KLASİK</button>
+                    <button data-menu="control-select" data-options='{"playerCount": 1, "mode": "timeAttack"}' class="menu-nav-btn control-btn bg-blue-500 w-3/4 p-3 mb-3 game-font">ZAMANA KARŞI</button>
+                    <button data-menu="control-select" data-options='{"playerCount": 1, "mode": "maze"}' class="menu-nav-btn control-btn bg-purple-500 w-3/4 p-3 mb-3 game-font">LABİRENT</button>
+                    <button data-menu="main" class="menu-nav-btn control-btn bg-gray-500 w-3/4 p-2 mt-3 text-sm game-font">GERİ</button>
+                </div>`;
+                break;
+            case 'difficulty':
+                 content = `<div class="overlay">
+                    <p class="text-xl sm:text-2xl game-font text-yellow-400 mb-6">ZORLUK SEVİYESİ</p>
+                    <button data-menu="control-select" data-options='${JSON.stringify({...options, difficulty: "easy"})}' class="menu-nav-btn control-btn bg-green-500 w-3/4 p-3 mb-3 game-font">KOLAY</button>
+                    <button data-menu="control-select" data-options='${JSON.stringify({...options, difficulty: "medium"})}' class="menu-nav-btn control-btn bg-orange-500 w-3/4 p-3 mb-3 game-font">ORTA</button>
+                    <button data-menu="control-select" data-options='${JSON.stringify({...options, difficulty: "hard"})}' class="menu-nav-btn control-btn bg-red-500 w-3/4 p-3 mb-3 game-font">ZOR</button>
+                    <button data-menu="${options.playerCount > 1 ? 'main' : 'sp-menu'}" class="menu-nav-btn control-btn bg-gray-500 w-3/4 p-2 mt-3 text-sm game-font">GERİ</button>
+                </div>`;
+                break;
+            case 'control-select':
+                 const title = options.playerCount > 1 ? 'P1 KONTROL SEÇİMİ' : 'KONTROL SEÇİMİ';
+                 content = `<div class="overlay">
+                    <p class="text-xl sm:text-2xl game-font text-yellow-400 mb-6">${title}</p>`;
+                 if (options.playerCount > 1) {
+                     content += `<button data-start-game='${JSON.stringify({...options, controlsP1: 'arrows', controlsP2: 'wasd'})}' class="start-game-btn control-btn bg-green-500 w-3/4 p-3 mb-3 game-font">YÖN TUŞLARI</button>
+                                <button data-start-game='${JSON.stringify({...options, controlsP1: 'wasd', controlsP2: 'arrows'})}' class="start-game-btn control-btn bg-blue-500 w-3/4 p-3 mb-3 game-font">WASD</button>`;
+                 } else {
+                     content += `<button data-start-game='${JSON.stringify({...options, controlsP1: 'arrows'})}' class="start-game-btn control-btn bg-green-500 w-3/4 p-3 mb-3 game-font">YÖN TUŞLARI</button>
+                                <button data-start-game='${JSON.stringify({...options, controlsP1: 'wasd'})}' class="start-game-btn control-btn bg-blue-500 w-3/4 p-3 mb-3 game-font">WASD</button>`;
+                 }
+                 const backMenu = options.mode === 'classic' ? 'difficulty' : 'sp-menu';
+                 content += `<button data-menu="${backMenu}" data-options='${JSON.stringify(options)}' class="menu-nav-btn control-btn bg-gray-500 w-3/4 p-2 mt-3 text-sm game-font">GERİ</button></div>`;
+                 break;
+            case 'themes':
+                content = `<div class="overlay"><p class="text-xl sm:text-2xl game-font text-yellow-400 mb-6">TEMA SEÇ</p>`;
+                Object.keys(themes).forEach(key => content += `<button data-theme="${key}" class="theme-btn control-btn ${key === (localStorage.getItem('snakeTheme') || 'default') ? 'ring' : ''} w-3/4 p-3 mb-3 game-font" style="background-color:${themes[key]['--bg-color']}; color:${themes[key]['--text-color']}">${key.toUpperCase()}</button>`);
+                content += `<button data-menu="main" class="menu-nav-btn control-btn bg-gray-500 w-3/4 p-2 mt-3 text-sm game-font">GERİ</button></div>`;
+                break;
+            case 'skins':
+                content = `<div class="overlay"><p class="text-xl sm:text-2xl game-font text-yellow-400 mb-4">GÖRÜNÜMLER</p><p class="mb-4 text-sm">TOPLAM PUAN: ${state.totalScore}</p><div class="w-full overflow-y-auto max-h-60">`;
+                Object.entries(skins).forEach(([key, skin]) => {
+                    const unlocked = state.unlockedSkins.has(key);
+                    const canBuy = state.totalScore >= skin.cost;
+                    const selected = state.currentSkin === key;
+                    content += `<button data-skin="${key}" class="skin-btn control-btn w-3/4 p-3 mb-3 game-font text-sm flex justify-between items-center ${unlocked ? (selected ? 'ring-2 ring-yellow-400' : '') : (canBuy ? '' : 'disabled-btn')}">${skin.name} <span>${unlocked ? '✔' : (skin.cost+'P')}</span></button>`;
+                });
+                content += `</div><button data-menu="main" class="menu-nav-btn control-btn bg-gray-500 w-3/4 p-2 mt-3 text-sm game-font">GERİ</button></div>`;
+                break;
+             case 'achievements':
+                content = `<div class="overlay"><p class="text-xl sm:text-2xl game-font text-yellow-400 mb-4">BAŞARIMLAR</p><div class="w-full overflow-y-auto max-h-60 text-left p-2">`;
+                Object.values(achievements).forEach(a => {
+                    content += `<div class="mb-3 ${a.unlocked ? 'text-green-400' : 'text-gray-500'}"><p class="font-bold">${a.name} ${a.unlocked ? '✔' : ''}</p><p class="text-xs">${a.desc}</p></div>`;
+                });
+                content += `</div><button data-menu="main" class="menu-nav-btn control-btn bg-gray-500 w-3/4 p-2 mt-3 text-sm game-font">GERİ</button></div>`;
+                break;
+        }
+        elements.menuContainer.innerHTML = content;
+    }
+
+    function showAchievementPopup(name) {
+        sounds.achievement();
+        elements.achievementPopup.textContent = `BAŞARIM: ${name}`;
+        elements.achievementPopup.classList.remove('hidden');
+        elements.achievementPopup.classList.add('achievement-unlocked');
+        setTimeout(() => {
+            elements.achievementPopup.classList.add('hidden');
+            elements.achievementPopup.classList.remove('achievement-unlocked');
+        }, 3000);
+    }
+    
     function applyTheme(themeName) {
         const theme = themes[themeName];
+        if (!theme) return;
         for (const [key, value] of Object.entries(theme)) {
             document.documentElement.style.setProperty(key, value);
         }
         localStorage.setItem('snakeTheme', themeName);
     }
-    function getCssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
 
     // --- Event Listeners ---
-    document.querySelectorAll('.menu-btn').forEach(btn => btn.addEventListener('click', e => {
-        Tone.start(); // Ensure audio context is started
-        const mode = e.currentTarget.dataset.mode;
-        if (mode === 'classic') {
-            showMenuScreen('difficulty-overlay');
-        } else {
-            startGame(mode);
-        }
-    }));
-    document.querySelectorAll('.difficulty-btn').forEach(btn => btn.addEventListener('click', e => {
-        startGame('classic', e.currentTarget.dataset.difficulty);
-    }));
-    document.getElementById('theme-menu-btn').addEventListener('click', () => showMenuScreen('theme-overlay'));
-    document.querySelectorAll('.theme-btn').forEach(btn => btn.addEventListener('click', e => applyTheme(e.currentTarget.dataset.theme)));
-    document.querySelectorAll('.back-btn').forEach(btn => btn.addEventListener('click', () => showMenuScreen('menu-overlay')));
+    function setupEventListeners() {
+        document.body.addEventListener('click', e => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            Tone.start().catch(err => console.log("Audio context error:", err));
+            
+            // Handle menu navigation
+            if (target.matches('.menu-nav-btn')) {
+                const options = JSON.parse(target.dataset.options || '{}');
+                // For touch devices, skip control selection for single player
+                if (target.dataset.menu === 'control-select' && options.playerCount === 1 && isTouchDevice) {
+                    startGame({...options, controlsP1: 'touch'});
+                } else {
+                    showMenuScreen(target.dataset.menu, options);
+                }
+            }
 
-    document.querySelectorAll('#btn-main-menu-mobile, #btn-main-menu-desktop').forEach(b => b.addEventListener('click', initializeGame));
+            if (target.matches('.start-game-btn')) {
+                startGame(JSON.parse(target.dataset.startGame));
+            }
+            if (target.matches('.theme-btn')) {
+                applyTheme(target.dataset.theme);
+                showMenuScreen('themes'); // Re-render to show selection
+            }
+            if (target.matches('.skin-btn')) {
+                const skinKey = target.dataset.skin;
+                if (state.unlockedSkins.has(skinKey)) {
+                    state.currentSkin = skinKey;
+                } else if(state.totalScore >= skins[skinKey].cost) {
+                    state.totalScore -= skins[skinKey].cost;
+                    state.unlockedSkins.add(skinKey);
+                    state.currentSkin = skinKey;
+                }
+                saveData();
+                showMenuScreen('skins');
+            }
+            if(target.id === 'btn-main-menu') {
+                initializeGame();
+            }
+        });
+        
+        elements.messageOverlay.addEventListener('click', () => {
+            if (state.isGameOver) initializeGame();
+            else if (state.isPaused) togglePause();
+        });
 
-    document.addEventListener('keydown', (e) => {
-        if(isGameOver) return;
-        if (e.key === 'p') { e.preventDefault(); togglePause(); return; }
-        changeDirection({ ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT', w: 'UP', s: 'DOWN', a: 'LEFT', d: 'RIGHT' }[e.key]);
-    });
+        document.addEventListener('keydown', e => {
+            if (state.isGameOver || !state.players || state.players.length === 0) return;
+        
+            const key = e.key.toLowerCase();
+        
+            if (key === 'p' && state.playerCount === 1 && state.mode !== 'timeAttack') {
+                e.preventDefault();
+                togglePause();
+            }
+        
+            state.players.forEach((player, playerIndex) => {
+                let direction = null;
+                if (player.controls === 'arrows') {
+                    if (key === 'arrowup') direction = 'UP';
+                    else if (key === 'arrowdown') direction = 'DOWN';
+                    else if (key === 'arrowleft') direction = 'LEFT';
+                    else if (key === 'arrowright') direction = 'RIGHT';
+                } else if (player.controls === 'wasd') {
+                    if (key === 'w') direction = 'UP';
+                    else if (key === 's') direction = 'DOWN';
+                    else if (key === 'a') direction = 'LEFT';
+                    else if (key === 'd') direction = 'RIGHT';
+                }
+        
+                if (direction) {
+                    e.preventDefault();
+                    changeDirection(playerIndex, direction);
+                }
+            });
+        });
+        
+        let touchStartX = 0, touchStartY = 0;
+        canvas.addEventListener('touchstart', e => { e.preventDefault(); touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }, { passive: false });
+        canvas.addEventListener('touchend', e => {
+            e.preventDefault();
+            if (state.isGameOver) { initializeGame(); return; }
+            if (!state.players || state.players.length === 0 || state.players[0].controls !== 'touch') return;
+            
+            let dx = e.changedTouches[0].clientX - touchStartX;
+            let dy = e.changedTouches[0].clientY - touchStartY;
+
+            if (Math.abs(dx) < 20 && Math.abs(dy) < 20) { 
+                togglePause(); 
+                return; 
+            }
+            if (Math.abs(dx) > Math.abs(dy)) {
+                 changeDirection(0, dx > 0 ? 'RIGHT' : 'LEFT');
+            } else {
+                 changeDirection(0, dy > 0 ? 'DOWN' : 'UP');
+            }
+        }, { passive: false });
+
+        window.addEventListener('resize', initializeGame);
+    }
     
-    // Mobile Buttons
-    document.getElementById('btn-up').addEventListener('click', () => changeDirection('UP'));
-    document.getElementById('btn-down').addEventListener('click', () => changeDirection('DOWN'));
-    document.getElementById('btn-left').addEventListener('click', () => changeDirection('LEFT'));
-    document.getElementById('btn-right').addEventListener('click', () => changeDirection('RIGHT'));
-
-    // Swipe Controls
-    let touchStartX = 0, touchStartY = 0;
-    canvas.addEventListener('touchstart', e => {
-        touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
-    });
-    canvas.addEventListener('touchend', e => {
-        if (isGameOver || isPaused) return;
-        let touchEndX = e.changedTouches[0].clientX, touchEndY = e.changedTouches[0].clientY;
-        let dx = touchEndX - touchStartX, dy = touchEndY - touchStartY;
-        if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return; // Ignore taps
-        if (Math.abs(dx) > Math.abs(dy)) changeDirection(dx > 0 ? 'RIGHT' : 'LEFT');
-        else changeDirection(dy > 0 ? 'DOWN' : 'UP');
-    });
-
-    window.addEventListener('resize', initializeGame);
-
     // --- Initial Call ---
     applyTheme(localStorage.getItem('snakeTheme') || 'default');
+    setupEventListeners();
     initializeGame();
 </script>
 </body>
